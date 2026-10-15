@@ -176,6 +176,7 @@ export function AuthForm({
                 <div className="password-field">
                   <input
                     name="password"
+                    aria-label="Password"
                     type={show ? "text" : "password"}
                     autoComplete={signin ? "current-password" : "new-password"}
                     minLength={signin ? 1 : 12}

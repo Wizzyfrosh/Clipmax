@@ -13,6 +13,12 @@ This is an implementation checkpoint, not completion of all PRD phase gates.
 
 ## Automated coverage
 
+### Staging follow-up
+
+Neon project `Clipmax Staging` (`dawn-tree-28981873`, Frankfurt, PostgreSQL 17) was created on the existing free organization using account defaults. Schema migration is pending: this workspace could not reach the PostgreSQL endpoint. No application tables have been applied. Vercel repository linking remains blocked pending GitHub integration access for `Wizzyfrosh/Clipmax`.
+
+GitHub Actions successfully installed Chromium and ran the browser test. It exposed an incorrect textbox-role selector for the password input; the test now selects the explicitly labelled password field. The correction needs a fresh CI run before claiming browser success.
+
 - Contract tests cover candidate bounds/overlap and clip-relative captions.
 - Media tests generate a synthetic permissioned fixture and execute real FFmpeg cuts in original and padded vertical layouts.
 - Embedded PostgreSQL tests apply both migrations and exercise owner isolation, denied foreign enqueue, rounded quota reservation, idempotency conflicts, negative-quota constraints, and tombstone denial.

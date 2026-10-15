@@ -11,12 +11,12 @@ test("welcome navigation and responsive registration", async ({ page }) => {
   await page.getByLabel("Full name").fill("Test Creator");
   await page.getByLabel("Email address").fill("test@example.com");
   await page
-    .getByRole("textbox", { name: "Password", exact: true })
+    .getByLabel("Password", { exact: true })
     .fill("testpassword123");
   await page.getByLabel("Confirm password").fill("testpassword123");
   await page.getByRole("button", { name: "Show password" }).click();
   await expect(
-    page.getByRole("textbox", { name: "Password", exact: true }),
+    page.getByLabel("Password", { exact: true }),
   ).toHaveAttribute("type", "text");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
