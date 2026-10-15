@@ -15,11 +15,11 @@ This is an implementation checkpoint, not completion of all PRD phase gates.
 
 ### Staging follow-up
 
-Neon project `Clipmax Staging` (`dawn-tree-28981873`, Frankfurt, PostgreSQL 17) exists. Direct PostgreSQL access from this workspace is unavailable. Both committed migrations were successfully prepared on temporary branch `br-delicate-cherry-b9ytb0gh`: 14 tables, 11 foreign keys, four safety checks and two partial indexes verified. Invalid quota and orphan-session writes were rejected; test records were rolled back. Applying to staging awaits the Neon migration tool's required user approval.
+Neon project `Clipmax Staging` (`dawn-tree-28981873`, Frankfurt, PostgreSQL 17) exists. Direct PostgreSQL access from this workspace is unavailable. Both committed migrations were successfully prepared on temporary branch `br-delicate-cherry-b9ytb0gh`: 14 tables, 11 foreign keys, four safety checks and two partial indexes verified. Invalid quota and orphan-session writes were rejected; test records were rolled back. Applied to staging after user approval on 15 October 2026; the temporary branch was deleted.
 
-Prepared migration ID: `88321f3b-6b5d-49af-b90d-878fd2c188c9`; parent branch: `br-flat-feather-b9eiop7j`. The SQL is the two committed migration files concatenated in order. Tool-based SQL application does not update Prisma's migration ledger. After application, reconcile with `prisma migrate resolve --applied` for both migration directories from a network-enabled environment, then verify `prisma migrate status` before enabling the application. Do not run `migrate deploy` on that baseline until reconciliation.
+Prepared migration ID: `88321f3b-6b5d-49af-b90d-878fd2c188c9`; parent branch: `br-flat-feather-b9eiop7j`. The SQL is the two committed migration files concatenated in order. Tool-based SQL application does not update Prisma's migration ledger. Reconcile with `prisma migrate resolve --applied` for both migration directories from a network-enabled environment, then verify `prisma migrate status` before enabling the application. Do not run `migrate deploy` on that baseline until reconciliation.
 
-GitHub Actions run `38685826859` passed, including browser tests, on commit `7935d218df5f9c5d64f6e1a0d11bb069d2d2d733`. The latest invitation-gate changes pass local tests/build; fresh remote CI is pending.
+GitHub Actions run `38685826859` passed, including browser tests, on commit `7935d218df5f9c5d64f6e1a0d11bb069d2d2d733`. The latest invitation-gate changes pass local tests/build; GitHub Actions run 38733902655 also passed on commit f7c33b4f731841334f886d386ad89df8bbc36878.
 
 The protected Vercel preview is deployed. Runtime environment variables and verified email delivery are still pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Resend credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
 
@@ -44,3 +44,11 @@ The protected Vercel preview is deployed. Runtime environment variables and veri
 The first implementation stores transcript/selection checkpoints as bounded JSON on Project, quota reservations on Job, and revisions/assets as relational rows. It does not yet implement the full specification's separate job-step/audit/cost tables. The web app uses the standard root Next.js layout. The local transcription payload stays below the provider size limit through bounded 30-minute sources and mono 48-kbps extraction; larger media/chunking is out of scope.
 
 These simplifications are explicit implementation gaps where the specification requires additional operational evidence. Do not mark all phases complete simply because the build passes.
+
+## Staging connection follow-up
+
+- Staging contains all 14 application tables.
+- Restricted SQL-created role `clipmax_app` has application-table DML and schema usage. Verified: no superuser, create-role, create-database, bypass-RLS, schema CREATE, or table TRUNCATE privileges.
+- The API-created role `clipmax_runtime` inherited Neon administrative membership and is unused. Attempts to revoke membership or disable it were denied by Neon. Its credentials have not been installed in the application; remove this unused role through the Neon control plane during cleanup.
+- Prisma migration-history reconciliation remains pending: `prisma migrate resolve` cannot connect from this workspace. Do not run migrations or mark the database baseline complete until the commands below pass from an authorized network-enabled environment.
+- Preview environment upload was rejected by automatic approval review because explicit authorization to send the database password and auth secret to Vercel is required. No runtime environment variables were saved by that attempt.

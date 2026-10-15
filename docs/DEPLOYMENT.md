@@ -32,3 +32,15 @@ Keep the bucket private. Allow only your exact web origins for uploads. Add life
 ## Rollback
 
 Pause processing, roll back application/worker images, and preserve forward-compatible migrations and all user data. Never reset a populated database to recover a failed release. Inspect queued job payload compatibility before resuming.
+
+## One-time staging migration reconciliation
+
+The first two migration SQL files were applied to Clipmax Staging through the Neon migration tool after user approval. This did not create Prisma's migration ledger. From a trusted environment with direct PostgreSQL connectivity and the staging migration-owner URL configured, run:
+
+```sh
+npx prisma migrate resolve --applied 202610150001_initial
+npx prisma migrate resolve --applied 202610150002_invariants
+npx prisma migrate status
+```
+
+Run these commands only against that already-validated staging baseline. Fresh databases use `npm run db:migrate`. Keep schema-owner credentials out of the deployed web runtime. The preview uses the separate `clipmax_app` role, a pooled URL with `connection_limit=2&pool_timeout=10`, and a canonical branch-preview origin.
