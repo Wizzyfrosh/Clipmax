@@ -24,6 +24,9 @@ beforeAll(async () => {
   process.env.PROCESSING_ENABLED = "true";
   process.env.AI_JOB_BUDGET_MICROS = "1000000";
   process.env.MONTHLY_AI_BUDGET_MICROS = "15000000";
+  process.env.BETTER_AUTH_SECRET =
+    "test-only-auth-secret-at-least-thirty-two-characters";
+  process.env.BETTER_AUTH_URL = "http://localhost:3000";
   ({ db } = await import("../src/lib/db"));
   ({ enqueue } = await import("../src/lib/jobs"));
   ({ ownedProject } = await import("../src/lib/http"));
@@ -50,6 +53,54 @@ afterAll(async () => {
   await pg.close();
 });
 describe("database authorization and accounting", () => {
+  it("rejects uninvited signup before creating an account", async () => {
+    process.env.PILOT_INVITE_EMAILS = "invited@example.test";
+    const { getAuth } = await import("../src/lib/auth");
+    const response = await getAuth().handler(
+      new Request("http://localhost:3000/api/auth/sign-up/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Uninvited",
+          email: "outside@example.test",
+          password: "testpassword123",
+        }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).toBe("INVITATION_REQUIRED");
+    expect(
+      await db.user.count({ where: { email: "outside@example.test" } }),
+    ).toBe(0);
+  });
+  it("does not create an invited account when verification email is unavailable", async () => {
+    process.env.PILOT_INVITE_EMAILS = " INVITED@example.test ";
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM;
+    const { getAuth } = await import("../src/lib/auth");
+    const response = await getAuth().handler(
+      new Request("http://localhost:3000/api/auth/sign-up/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Invited",
+          email: "invited@example.test",
+          password: "testpassword123",
+        }),
+      }),
+    );
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("EMAIL_NOT_CONFIGURED");
+    expect(
+      await db.user.count({ where: { email: "invited@example.test" } }),
+    ).toBe(0);
+  });
   it("allows owner, denies other account", async () => {
     expect((await ownedProject(projectId, "owner-a")).title).toBe(
       "Private source",

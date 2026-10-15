@@ -4,26 +4,30 @@ This is an implementation checkpoint, not completion of all PRD phase gates.
 
 ## Latest local results — 15 October 2026
 
-- `npm test`: 14 tests passed across two suites, including actual FFmpeg and PostgreSQL execution.
+- `npm test`: 16 tests passed across two suites, including actual FFmpeg and PostgreSQL execution.
 - `npm run build`: passed, including TypeScript compilation.
 - `npm run typecheck`: passed before the final build; the final build also typechecked the latest changes.
 - `git diff --check`: passed.
 - `npm run test:e2e`: blocked before browser execution because Chromium is not installed; the earlier browser download returned an invalid archive.
-- No live-provider processing, cloud deployment or creator review has been completed.
+- Protected Vercel preview is READY; landing, signin and dashboard returned HTTP 200. No live-provider processing or creator review has been completed.
 
 ## Automated coverage
 
 ### Staging follow-up
 
-Neon project `Clipmax Staging` (`dawn-tree-28981873`, Frankfurt, PostgreSQL 17) was created on the existing free organization using account defaults. Schema migration is pending: this workspace could not reach the PostgreSQL endpoint. No application tables have been applied. Vercel repository linking remains blocked pending GitHub integration access for `Wizzyfrosh/Clipmax`.
+Neon project `Clipmax Staging` (`dawn-tree-28981873`, Frankfurt, PostgreSQL 17) exists. Direct PostgreSQL access from this workspace is unavailable. Both committed migrations were successfully prepared on temporary branch `br-delicate-cherry-b9ytb0gh`: 14 tables, 11 foreign keys, four safety checks and two partial indexes verified. Invalid quota and orphan-session writes were rejected; test records were rolled back. Applying to staging awaits the Neon migration tool's required user approval.
 
-GitHub Actions successfully installed Chromium and ran the browser test. It exposed an incorrect textbox-role selector for the password input; the test now selects the explicitly labelled password field. The correction needs a fresh CI run before claiming browser success.
+Prepared migration ID: `88321f3b-6b5d-49af-b90d-878fd2c188c9`; parent branch: `br-flat-feather-b9eiop7j`. The SQL is the two committed migration files concatenated in order. Tool-based SQL application does not update Prisma's migration ledger. After application, reconcile with `prisma migrate resolve --applied` for both migration directories from a network-enabled environment, then verify `prisma migrate status` before enabling the application. Do not run `migrate deploy` on that baseline until reconciliation.
+
+GitHub Actions run `38685826859` passed, including browser tests, on commit `7935d218df5f9c5d64f6e1a0d11bb069d2d2d733`. The latest invitation-gate changes pass local tests/build; fresh remote CI is pending.
+
+The protected Vercel preview is deployed. Runtime environment variables and verified email delivery are still pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Resend credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
 
 - Contract tests cover candidate bounds/overlap and clip-relative captions.
 - Media tests generate a synthetic permissioned fixture and execute real FFmpeg cuts in original and padded vertical layouts.
 - Embedded PostgreSQL tests apply both migrations and exercise owner isolation, denied foreign enqueue, rounded quota reservation, idempotency conflicts, negative-quota constraints, and tombstone denial.
 - Embedded PostgreSQL uses one connection; it does not establish multi-worker race safety or Neon-specific behavior.
-- Browser tests exist for landing/auth navigation, input interaction, and mobile overflow. Browser installation was blocked in this environment; do not claim they passed without rerunning.
+- Browser tests exist for landing/auth navigation, input interaction, and mobile overflow. Local browser installation was blocked; the previous commit passed these tests in GitHub Actions.
 
 ## Must pass before pilot
 
@@ -32,7 +36,7 @@ GitHub Actions successfully installed Chromium and ran the browser test. It expo
 3. Exercise concurrent submissions, lease expiry, worker crashes after provider success and after upload, cancellation and deletion races on real PostgreSQL/R2.
 4. Validate exact UI fidelity, responsive layout, focus/accessibility and playback in a browser against the supplied reference.
 5. Complete monetary cost reconciliation (including script regeneration and ambiguous provider attempts), provider Retry-After/jitter/circuit-breaker handling, operational alerting and restore testing.
-6. Add and test an invitation gate, legal/abuse contact, terms acceptance and approved privacy disclosures before public access.
+6. Configure the tested invitation gate, and add legal/abuse contact, terms acceptance and approved privacy disclosures before public access.
 7. Expand fixtures for rotated/variable-frame-rate media, silence, corrupted input, portrait dimensions and subtitle edge cases.
 
 ## Design simplifications

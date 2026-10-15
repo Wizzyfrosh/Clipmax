@@ -21,7 +21,8 @@ Keep the bucket private. Allow only your exact web origins for uploads. Add life
 ## Launch controls
 
 - Keep PROCESSING_ENABLED false until a real end-to-end staging run passes.
-- Restrict deployment access to invited testers until an application invitation gate is implemented and tested.
+- Set PILOT_INVITE_EMAILS to the exact email addresses allowed to register. Empty means registration is closed. The server checks the list before account creation; ADMIN_EMAILS is a separate operations permission. Removing an invitation does not suspend an existing account.
+- Keep deployment protection enabled during setup. Registration also requires configured verification email delivery.
 - Review AI_JOB_BUDGET_MICROS against the selected model, maximum input, output, and all retries. Current reservations are admission controls, not actual cost reconciliation. Configure provider-side limits too.
 - Restrict runtime database roles to required application DML; migrations use a separate schema owner.
 - Configure monitoring for stuck jobs, stale leases, failed deletion, disk pressure, provider failures, and budget usage. Current console logs alone are not sufficient alerting.

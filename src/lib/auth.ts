@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { Resend } from "resend";
 import { db } from "./db";
 import { required } from "./config";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 async function email(to: string, subject: string, url: string) {
   const result = await new Resend(required("RESEND_API_KEY")).emails.send({
     from: required("EMAIL_FROM"),
@@ -18,6 +19,33 @@ function createAuth() {
     secret: required("BETTER_AUTH_SECRET"),
     baseURL: required("BETTER_AUTH_URL"),
     trustedOrigins: [required("BETTER_AUTH_URL")],
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-up/email") return;
+        const address =
+          typeof ctx.body?.email === "string"
+            ? ctx.body.email.trim().toLowerCase()
+            : "";
+        const invited = (process.env.PILOT_INVITE_EMAILS ?? "")
+          .split(",")
+          .map((value) => value.trim().toLowerCase())
+          .filter(Boolean);
+        if (!address || !invited.includes(address)) {
+          throw new APIError("FORBIDDEN", {
+            code: "INVITATION_REQUIRED",
+            message:
+              "Clipmax is in private testing. Ask the project owner for an invitation.",
+          });
+        }
+        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+          throw new APIError("SERVICE_UNAVAILABLE", {
+            code: "EMAIL_NOT_CONFIGURED",
+            message:
+              "Account registration is not available yet. Please try again later.",
+          });
+        }
+      }),
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
