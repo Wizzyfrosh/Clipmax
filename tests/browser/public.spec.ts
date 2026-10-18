@@ -81,3 +81,17 @@ test("welcome navigation and responsive registration", async ({ page }) => {
     page.getByRole("button", { name: "SEND RESET LINK" }),
   ).toBeVisible();
 });
+
+test("Google sign-in uses its original multicolor mark on a neutral button", async ({ page }) => {
+  await page.goto("/sign-in");
+  const google = page.getByRole("button", { name: "Continue with Google" });
+  await expect(google).toBeVisible();
+  const background = await google.evaluate(
+    (button) => getComputedStyle(button).backgroundColor,
+  );
+  expect(background).toBe("rgb(255, 255, 255)");
+  const logoColors = await google.locator("svg path").evaluateAll((paths) =>
+    paths.map((path) => path.getAttribute("fill")),
+  );
+  expect(logoColors).toEqual(["#EA4335", "#4285F4", "#FBBC05", "#34A853"]);
+});
