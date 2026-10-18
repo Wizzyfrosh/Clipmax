@@ -5,11 +5,29 @@ import { db } from "./db";
 import { googleConfigured, required } from "./config";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 export function createAuth() {
+  const canonicalURL = required("BETTER_AUTH_URL");
+  // Trust only the Clipmax production hosts and deployment URLs in our Vercel
+  // account. Never trust all *.vercel.app hosts or disable CSRF validation.
+  const allowedHosts = Array.from(
+    new Set([
+      new URL(canonicalURL).host,
+      "clipmax.froshcodeorbit.site",
+      "clipmax-beta.vercel.app",
+      "clipmax-umanor-wisdom-chizoba-s-projects.vercel.app",
+      "clipmax-git-main-umanor-wisdom-chizoba-s-projects.vercel.app",
+      "clipmax-*-umanor-wisdom-chizoba-s-projects.vercel.app",
+    ]),
+  );
   return betterAuth({
     database: prismaAdapter(db, { provider: "postgresql" }),
     secret: required("BETTER_AUTH_SECRET"),
-    baseURL: required("BETTER_AUTH_URL"),
-    trustedOrigins: [required("BETTER_AUTH_URL")],
+    // Better Auth resolves the origin from a validated request host. This
+    // keeps email/session URLs on the same host the visitor is using.
+    baseURL: {
+      allowedHosts,
+      protocol: process.env.NODE_ENV === "production" ? "https" : "auto",
+      fallback: canonicalURL,
+    },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== "/sign-up/email") return;
