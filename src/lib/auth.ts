@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { sendAuthEmail as email } from "./email";
+import { sendAuthEmail as email, sendVerificationCodeEmail } from "./email";
+import { emailOTP } from "better-auth/plugins";
 import { db } from "./db";
 import { googleConfigured, required } from "./config";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -64,13 +65,35 @@ export function createAuth() {
       sendResetPassword: async ({ user, url }) =>
         email(user.email, "Reset your Clipmax password", url),
     },
-    emailVerification: {
-      sendOnSignUp: true,
-      sendVerificationEmail: async ({ user, url }) =>
-        email(user.email, "Verify your Clipmax email", url),
-    },
+    // Email verification is handled only by the OTP plugin, not links.
+    emailVerification: { sendOnSignUp: false },
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 300,
+        allowedAttempts: 5,
+        storeOTP: "hashed",
+        sendVerificationOnSignUp: true,
+        overrideDefaultEmailVerification: true,
+        disableSignUp: true,
+        async sendVerificationOTP({ email: address, otp, type }) {
+          if (type !== "email-verification") return;
+          await sendVerificationCodeEmail(address, otp);
+        },
+      }),
+    ],
     session: { cookieCache: { enabled: false } },
-    rateLimit: { enabled: true, storage: "database", window: 60, max: 30 },
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 30,
+      customRules: {
+        "/email-otp/send-verification-otp": { window: 60, max: 3 },
+        "/email-otp/verify-email": { window: 60, max: 10 },
+        "/sign-up/email": { window: 60, max: 5 },
+      },
+    },
   });
 }
 
