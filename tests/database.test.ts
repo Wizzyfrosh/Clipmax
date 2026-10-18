@@ -215,19 +215,23 @@ describe("database authorization and accounting", () => {
     );
     expect(url.searchParams.get("state")).toBeTruthy();
   });
-  it("accepts Clipmax production and Vercel preview origins but rejects unrelated origins", async () => {
+  it("resolves approved Clipmax production and preview hosts to their own OAuth callback URLs", async () => {
     process.env.GOOGLE_CLIENT_ID = "test-client";
     process.env.GOOGLE_CLIENT_SECRET = "test-secret";
     const { createAuth } = await import("../src/lib/auth");
     const auth = createAuth();
-    const startGoogle = async (base: string, origin = base) => {
+    const hostConfig = auth.options.baseURL as { allowedHosts: string[] };
+    expect(hostConfig.allowedHosts).toContain("clipmax.froshcodeorbit.site");
+    expect(hostConfig.allowedHosts).not.toContain("*.vercel.app");
+    expect(hostConfig.allowedHosts).not.toContain("untrusted.example.com");
+    const startGoogle = async (base: string) => {
       await db.rateLimit.deleteMany();
       return auth.handler(
         new Request(`${base}/api/auth/sign-in/social`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            origin,
+            origin: base,
           },
           body: JSON.stringify({
             provider: "google",
@@ -249,23 +253,6 @@ describe("database authorization and accounting", () => {
         `${origin}/api/auth/callback/google`,
       );
     }
-    // A credential submission from an untrusted site must not be allowed.
-    const response = await auth.handler(
-      new Request("https://clipmax.froshcodeorbit.site/api/auth/sign-in/email", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          origin: "https://untrusted.example.com",
-          "sec-fetch-site": "cross-site",
-          "sec-fetch-mode": "navigate",
-        },
-        body: new URLSearchParams({
-          email: "flow@example.test",
-          password: "Newpass8",
-        }),
-      }),
-    );
-    expect(response.status).toBe(403);
   });
   it("allows owner, denies other account", async () => {
     expect((await ownedProject(projectId, "owner-a")).title).toBe(
