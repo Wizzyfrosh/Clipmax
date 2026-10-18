@@ -1,7 +1,22 @@
-import { beforeAll, afterAll, describe, it, expect } from "vitest";
+import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { readFile } from "node:fs/promises";
+
+const { sent } = vi.hoisted(() => ({
+  sent: [] as { text: string; subject: string }[],
+}));
+// Only external email delivery is mocked; auth handlers and PostgreSQL are real.
+vi.mock("resend", () => ({
+  Resend: class {
+    emails = {
+      send: async (message: { text: string; subject: string }) => {
+        sent.push(message);
+        return { data: { id: "test-email" }, error: null };
+      },
+    };
+  },
+}));
 
 // Real embedded PostgreSQL, not mocked query responses. This does not replace
 // multi-connection concurrency/fault testing against staging Neon.
@@ -100,6 +115,133 @@ describe("database authorization and accounting", () => {
     expect(
       await db.user.count({ where: { email: "invited@example.test" } }),
     ).toBe(0);
+  });
+  it("verifies email, accepts eight characters, resets once and revokes sessions", async () => {
+    process.env.PILOT_INVITE_EMAILS = "flow@example.test";
+    process.env.RESEND_API_KEY = "test-only";
+    process.env.EMAIL_FROM = "test@example.test";
+    const { createAuth } = await import("../src/lib/auth");
+    const auth = createAuth();
+    const post = async (path: string, body: unknown) => {
+      // Each case starts a fresh rate-limit window; production limits stay enabled.
+      await db.rateLimit.deleteMany();
+      return auth.handler(
+        new Request(`http://localhost:3000/api/auth/${path}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify(body),
+        }),
+      );
+    };
+    const credentials = {
+      email: "flow@example.test",
+      password: "Eight123",
+      name: "Flow",
+    };
+    expect(
+      (await post("sign-up/email", { ...credentials, password: "Short12" }))
+        .status,
+    ).toBe(400);
+    expect((await post("sign-up/email", credentials)).status).toBe(200);
+    expect((await post("sign-in/email", credentials)).status).toBe(403);
+    const verifyURL = sent
+      .find((m) => m.subject.includes("Verify"))!
+      .text.split("\n")[2];
+    expect((await auth.handler(new Request(verifyURL))).status).toBeLessThan(
+      400,
+    );
+    expect(
+      (await post("sign-in/email", { ...credentials, password: "wrong123" }))
+        .status,
+    ).toBe(401);
+    expect((await post("sign-in/email", credentials)).status).toBe(200);
+    const user = await db.user.findUniqueOrThrow({
+      where: { email: credentials.email },
+    });
+    expect(
+      await db.session.count({ where: { userId: user.id } }),
+    ).toBeGreaterThan(0);
+    const reset = await post("request-password-reset", {
+      email: credentials.email,
+      redirectTo: "/reset-password",
+    });
+    expect(reset.status).toBe(200);
+    const unknown = await post("request-password-reset", {
+      email: "missing@example.test",
+      redirectTo: "/reset-password",
+    });
+    expect(await unknown.json()).toEqual(await reset.json());
+    const resetURL = sent
+      .find((m) => m.subject.includes("Reset"))!
+      .text.split("\n")[2];
+    const token = new URL(resetURL).pathname.split("/").pop();
+    expect(
+      (await post("reset-password", { token, newPassword: "Short12" })).status,
+    ).toBe(400);
+    expect(
+      (await post("reset-password", { token, newPassword: "Newpass8" })).status,
+    ).toBe(200);
+    expect(await db.session.count({ where: { userId: user.id } })).toBe(0);
+    expect(
+      (await post("reset-password", { token, newPassword: "Other123" })).status,
+    ).toBe(400);
+    expect((await post("sign-in/email", credentials)).status).toBe(401);
+    expect(
+      (await post("sign-in/email", { ...credentials, password: "Newpass8" }))
+        .status,
+    ).toBe(200);
+  });
+  it("gates Google provisioning and starts the OAuth redirect", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-client";
+    process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+    process.env.PILOT_INVITE_EMAILS = "google@example.test";
+    const { createAuth } = await import("../src/lib/auth");
+    const auth = createAuth();
+    const validate = auth.options.user!.validateUserInfo!;
+    // The provider identity is supplied by Better Auth, never by a client form.
+    const source = {
+      method: "oauth",
+      action: "create-user" as const,
+      oauth: { providerId: "google" },
+    };
+    expect(
+      await validate({
+        user: { email: "outside@example.test", emailVerified: true },
+        source,
+      }),
+    ).toEqual({ error: "invitation_required" });
+    expect(
+      await validate({
+        user: { email: "google@example.test", emailVerified: false },
+        source,
+      }),
+    ).toEqual({ error: "email_not_verified" });
+    expect(
+      await validate({
+        user: { email: "google@example.test", emailVerified: true },
+        source,
+      }),
+    ).toBeUndefined();
+    const response = await auth.handler(
+      new Request("http://localhost:3000/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    const url = new URL((await response.json()).url);
+    expect(url.hostname).toBe("accounts.google.com");
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      "http://localhost:3000/api/auth/callback/google",
+    );
+    expect(url.searchParams.get("state")).toBeTruthy();
   });
   it("allows owner, denies other account", async () => {
     expect((await ownedProject(projectId, "owner-a")).title).toBe(

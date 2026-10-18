@@ -17,3 +17,9 @@ export function authConfigured() {
     process.env.BETTER_AUTH_URL,
   );
 }
+
+export function googleConfigured() {
+  return Boolean(
+    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+  );
+}
