@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { sendAuthEmail } from "../src/lib/email";
+import { sendAuthEmail, sendVerificationCodeEmail } from "../src/lib/email";
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -38,4 +38,32 @@ it("rejects provider failures instead of reporting delivery success", async () =
   await expect(
     sendAuthEmail("user@example.test", "Reset", "https://example.test/reset"),
   ).rejects.toThrow("EMAIL_DELIVERY_FAILED");
+});
+
+it("sends branded OTP email with both HTML and text and does not embed verification links", async () => {
+  vi.stubEnv("BREVO_API_KEY", "test-key");
+  vi.stubEnv("EMAIL_FROM", "account@clipmax.froshcodeorbit.site");
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 201 }));
+  vi.stubGlobal("fetch", fetchMock);
+  await sendVerificationCodeEmail("new@example.test", "048216");
+  const email = JSON.parse(fetchMock.mock.calls[0][1].body);
+  expect(email.to).toEqual([{ email: "new@example.test" }]);
+  expect(email.sender.email).toBe("account@clipmax.froshcodeorbit.site");
+  expect(email.subject).toContain("verification code");
+  expect(email.htmlContent).toContain("048216");
+  expect(email.textContent).toContain("048216");
+  expect(email.textContent).not.toMatch(/https?:\/\//);
+});
+it("returns a send error for API rejection without including a private code in logs", async () => {
+  vi.stubEnv("BREVO_API_KEY", "test-key");
+  vi.stubEnv("EMAIL_FROM", "account@clipmax.froshcodeorbit.site");
+  const logs = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 403 })));
+  try {
+    await expect(sendVerificationCodeEmail("new@example.test", "123456")).rejects.toThrow("EMAIL_DELIVERY_FAILED");
+    expect(logs).toHaveBeenCalledWith("BREVO_DELIVERY_REJECTED", { status: 403 });
+    expect(JSON.stringify(logs.mock.calls)).not.toContain("123456");
+  } finally {
+    logs.mockRestore();
+  }
 });
