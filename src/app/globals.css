@@ -1709,3 +1709,31 @@ th {
 .auth-sheet .button.google-auth-button:disabled {
   opacity: 0.6;
 }
+
+/* Email OTP verification */
+.verification-code-input {
+  text-align: center;
+  font-size: 26px !important;
+  font-weight: 750;
+  letter-spacing: 9px;
+  padding: 12px !important;
+  border: 1px solid #e2d8e3 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  font-variant-numeric: tabular-nums;
+}
+.verify-resend {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #a8113a;
+  font-weight: 700;
+  padding: 10px;
+  font-size: 12px;
+}
+.verify-resend:disabled { opacity: .55; cursor: not-allowed; }
+.verify-link { color: #a8113a; font-weight: 700; }
+.verify-success-icon { display: grid; place-items: center; color: #347049; }

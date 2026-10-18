@@ -66,7 +66,7 @@ export function AuthForm({
           callbackURL: "/dashboard",
         });
         if (r.error) throw Error(r.error.message);
-        setMessage("Check your inbox to verify your email, then sign in.");
+        window.location.assign(`/verify-email?email=${encodeURIComponent(email)}`);
       } else if (mode === "sign-in") {
         const r = await authClient.signIn.email({
           email,
@@ -283,6 +283,12 @@ export function AuthForm({
                       ? "SEND RESET LINK"
                       : "UPDATE PASSWORD"}
             </button>
+            {signup && (
+              <p className="fine-print">
+                Already registered but haven't received your verification code?{" "}
+                <Link className="verify-link" href="/verify-email">Verify your email</Link>
+              </p>
+            )}
             {signup && (
               <p className="fine-print">
                 Your videos are private. Only upload content you own or have
