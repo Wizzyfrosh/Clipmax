@@ -254,11 +254,12 @@ describe("database authorization and accounting", () => {
       new Request("https://clipmax.froshcodeorbit.site/api/auth/sign-in/email", {
         method: "POST",
         headers: {
-          "content-type": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
           origin: "https://untrusted.example.com",
-          cookie: "better-auth.session_token=invalid",
+          "sec-fetch-site": "cross-site",
+          "sec-fetch-mode": "navigate",
         },
-        body: JSON.stringify({
+        body: new URLSearchParams({
           email: "flow@example.test",
           password: "Newpass8",
         }),
