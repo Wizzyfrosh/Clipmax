@@ -14,10 +14,9 @@ test("expanded homepage preserves content and supports accessible interactions",
   await expect(
     page.getByRole("heading", { name: "One lesson. A clearer takeaway." }),
   ).toBeVisible();
-  const question = page.getByText(
-    "Does Clipmax create a voice-over recording?",
-    { exact: true },
-  );
+  const question = page
+    .locator("summary")
+    .filter({ hasText: "Does Clipmax create a voice-over recording?" });
   await question.focus();
   await page.keyboard.press("Enter");
   await expect(
