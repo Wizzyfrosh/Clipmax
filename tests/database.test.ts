@@ -11,6 +11,9 @@ vi.mock("../src/lib/email", () => ({
   sendAuthEmail: async (_to: string, subject: string, url: string) => {
     sent.push({ subject, text: `${subject}\n\n${url}` });
   },
+  sendVerificationCodeEmail: async (_to: string, otp: string) => {
+    sent.push({ subject: "Your Clipmax verification code", text: otp });
+  },
 }));
 
 // Real embedded PostgreSQL, not mocked query responses. This does not replace
@@ -119,12 +122,26 @@ describe("database authorization and accounting", () => {
     ).toBe(400);
     expect((await post("sign-up/email", credentials)).status).toBe(200);
     expect((await post("sign-in/email", credentials)).status).toBe(403);
-    const verifyURL = sent
-      .find((m) => m.subject.includes("Verify"))!
-      .text.split("\n")[2];
-    expect((await auth.handler(new Request(verifyURL))).status).toBeLessThan(
-      400,
-    );
+    const code = sent.find((m) => m.subject.includes("verification code"))?.text;
+    expect(code).toMatch(/^\d{6}$/);
+    expect(
+      (await post("email-otp/verify-email", {
+        email: credentials.email,
+        otp: "000000",
+      })).status,
+    ).toBeGreaterThanOrEqual(400);
+    expect(
+      (await post("email-otp/verify-email", {
+        email: credentials.email,
+        otp: code,
+      })).status,
+    ).toBe(200);
+    expect(
+      (await post("email-otp/verify-email", {
+        email: credentials.email,
+        otp: code,
+      })).status,
+    ).toBeGreaterThanOrEqual(400);
     expect(
       (await post("sign-in/email", { ...credentials, password: "wrong123" }))
         .status,
