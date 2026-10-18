@@ -215,6 +215,45 @@ describe("database authorization and accounting", () => {
     );
     expect(url.searchParams.get("state")).toBeTruthy();
   });
+  it("resolves approved Clipmax production and preview hosts to their own OAuth callback URLs", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-client";
+    process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+    const { createAuth } = await import("../src/lib/auth");
+    const auth = createAuth();
+    const hostConfig = auth.options.baseURL as { allowedHosts: string[] };
+    expect(hostConfig.allowedHosts).toContain("clipmax.froshcodeorbit.site");
+    expect(hostConfig.allowedHosts).not.toContain("*.vercel.app");
+    expect(hostConfig.allowedHosts).not.toContain("untrusted.example.com");
+    const startGoogle = async (base: string) => {
+      await db.rateLimit.deleteMany();
+      return auth.handler(
+        new Request(`${base}/api/auth/sign-in/social`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: base,
+          },
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL: "/dashboard",
+          }),
+        }),
+      );
+    };
+    for (const origin of [
+      "http://localhost:3000",
+      "https://clipmax.froshcodeorbit.site",
+      "https://clipmax-beta.vercel.app",
+      "https://clipmax-sample-umanor-wisdom-chizoba-s-projects.vercel.app",
+    ]) {
+      const response = await startGoogle(origin);
+      expect(response.status, origin).toBe(200);
+      const oauth = new URL((await response.json()).url);
+      expect(oauth.searchParams.get("redirect_uri")).toBe(
+        `${origin}/api/auth/callback/google`,
+      );
+    }
+  });
   it("allows owner, denies other account", async () => {
     expect((await ownedProject(projectId, "owner-a")).title).toBe(
       "Private source",
