@@ -2,6 +2,15 @@
 
 This is an implementation checkpoint, not completion of all PRD phase gates.
 
+## Offline media hardening — 18 October 2026
+
+- Media cancellation and timeout now force termination and wait for process close before returning, allowing safe temporary-file cleanup.
+- Subprocess stdout is bounded by bytes; stderr is drained without exposing private paths or untrusted metadata in application errors.
+- Rendering rejects unknown layouts and ranges outside the 20–60 second contract before opening input files.
+- `npm test`: 30 tests passed, including 14 new subprocess/render-boundary checks plus existing real FFmpeg and embedded PostgreSQL tests. `npm run typecheck`: passed.
+- `npm run build`: passed on a clean generated cache after the existing Turbopack cache caused a persistence-read panic. No source or dependency workaround was needed.
+- These tests establish local process boundaries, not live-provider reliability, multi-worker race safety, or creator usefulness.
+
 ## Latest local results — 15 October 2026
 
 - `npm test`: 16 tests passed across two suites, including actual FFmpeg and PostgreSQL execution.
@@ -21,7 +30,7 @@ Prepared migration ID: `88321f3b-6b5d-49af-b90d-878fd2c188c9`; parent branch: `b
 
 GitHub Actions run `38685826859` passed, including browser tests, on commit `7935d218df5f9c5d64f6e1a0d11bb069d2d2d733`. The latest invitation-gate changes pass local tests/build; GitHub Actions run 38733902655 also passed on commit f7c33b4f731841334f886d386ad89df8bbc36878.
 
-The protected Vercel preview is deployed. Runtime environment variables and verified email delivery are still pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Resend credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
+The protected Vercel preview is deployed with database/auth configuration. Verified email delivery remains pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Resend credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
 
 - Contract tests cover candidate bounds/overlap and clip-relative captions.
 - Media tests generate a synthetic permissioned fixture and execute real FFmpeg cuts in original and padded vertical layouts.
@@ -51,4 +60,4 @@ These simplifications are explicit implementation gaps where the specification r
 - Restricted SQL-created role `clipmax_app` has application-table DML and schema usage. Verified: no superuser, create-role, create-database, bypass-RLS, schema CREATE, or table TRUNCATE privileges.
 - The API-created role `clipmax_runtime` inherited Neon administrative membership and is unused. Attempts to revoke membership or disable it were denied by Neon. Its credentials have not been installed in the application; remove this unused role through the Neon control plane during cleanup.
 - Prisma migration-history reconciliation remains pending: `prisma migrate resolve` cannot connect from this workspace. Do not run migrations or mark the database baseline complete until the commands below pass from an authorized network-enabled environment.
-- Preview environment upload was rejected by automatic approval review because explicit authorization to send the database password and auth secret to Vercel is required. No runtime environment variables were saved by that attempt.
+- After explicit user approval on 15 October, preview database/authentication secrets and conservative configuration were saved for `feature/clipmax-mvp`. Deployment `dpl_4LhBJaqfdUB2867WpEyTrZNvE9hJ` reached READY; the unauthenticated session endpoint returned HTTP 200 with null. This is not a successful signup or complete database integration test. Email, storage, AI and worker configuration remain deferred by the user.

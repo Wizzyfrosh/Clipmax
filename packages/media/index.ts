@@ -7,36 +7,46 @@ export async function command(
   signal?: AbortSignal,
   timeout = 300000,
 ) {
+  if (signal?.aborted) throw Error("MEDIA_CANCELLED");
   return new Promise<string>((resolve, reject) => {
     const child = spawn(bin, args, {
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
-      signal,
     });
-    let output = "",
-      error = "";
-    const timer = setTimeout(() => {
+    let output = "";
+    let bytes = 0;
+    let failure: Error | undefined;
+    const stop = (code: string) => {
+      failure ??= Error(code);
       child.kill("SIGKILL");
-      reject(Error("MEDIA_TIMEOUT"));
+    };
+    const abort = () => stop("MEDIA_CANCELLED");
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+    const timer = setTimeout(() => {
+      stop("MEDIA_TIMEOUT");
     }, timeout);
     child.stdout.on("data", (b) => {
-      output += b.toString();
-      if (output.length > 2_000_000) {
-        child.kill("SIGKILL");
-        reject(Error("MEDIA_OUTPUT_LIMIT"));
+      if (failure) return;
+      bytes += b.length;
+      if (bytes > 2_000_000) {
+        stop("MEDIA_OUTPUT_LIMIT");
+        return;
       }
+      output += b.toString();
     });
-    child.stderr.on("data", (b) => {
-      error = (error + b.toString()).slice(-4000);
-    });
-    child.on("error", (e) => {
-      clearTimeout(timer);
-      reject(e);
+    // Drain stderr without retaining source paths or untrusted media metadata.
+    child.stderr.resume();
+    child.on("error", () => {
+      failure ??= Error("MEDIA_SPAWN_FAILED");
     });
     child.on("close", (code) => {
       clearTimeout(timer);
-      if (code === 0) resolve(output);
-      else reject(Error(`MEDIA_FAILED_${code}: ${error.slice(-300)}`));
+      signal?.removeEventListener("abort", abort);
+      // Settle only after exit so callers can safely clean up temporary files.
+      if (failure) reject(failure);
+      else if (code === 0) resolve(output);
+      else reject(Error(`MEDIA_FAILED_${code ?? "SIGNAL"}`));
     });
   });
 }
@@ -150,11 +160,12 @@ export async function render(
   layout: string,
   signal?: AbortSignal,
 ) {
+  if (!["original", "vertical"].includes(layout)) throw Error("INVALID_LAYOUT");
   if (
     !Number.isSafeInteger(startMs) ||
     !Number.isSafeInteger(endMs) ||
     startMs < 0 ||
-    endMs <= startMs ||
+    endMs - startMs < 20000 ||
     endMs - startMs > 60000
   )
     throw Error("INVALID_RANGE");
