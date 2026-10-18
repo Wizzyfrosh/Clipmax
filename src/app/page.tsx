@@ -8,6 +8,7 @@ import {
   Check,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { HomeDetails } from "@/components/home-details";
 export default function Home() {
   return (
     <main className="landing">
@@ -159,6 +160,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <HomeDetails />
       <footer className="landing-footer">
         <Brand />
         <span>For the moments that deserve more.</span>
