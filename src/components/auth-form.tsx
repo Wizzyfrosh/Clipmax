@@ -3,6 +3,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowLeft, Check, Scissors } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { GoogleLogo } from "./google-logo";
 import { Brand } from "./brand";
 type Mode = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
 export function AuthForm({
@@ -20,9 +21,7 @@ export function AuthForm({
     [error, setError] = useState("");
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("error"))
-      setError(
-        "Sign-in could not be completed. Use your invited email address and try again.",
-      );
+      setError("Sign-in could not be completed. Please try again.");
   }, []);
   async function googleSignIn() {
     setBusy(true);
@@ -176,11 +175,11 @@ export function AuthForm({
               <>
                 <button
                   type="button"
-                  className="button"
+                  className="button google-auth-button"
                   disabled={busy || !configured || !googleConfigured}
                   onClick={googleSignIn}
                 >
-                  Continue with Google
+                  <GoogleLogo /> Continue with Google
                 </button>
                 {!googleConfigured && (
                   <p className="fine-print">
