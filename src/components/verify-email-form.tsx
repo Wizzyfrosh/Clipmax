@@ -104,7 +104,7 @@ export function VerifyEmailForm({ configured }: { configured: boolean }) {
                   <input id="verify-email-address" type="email" name="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
                 </label>
                 <label htmlFor="verify-email-code">Verification code
-                  <input id="verify-email-code" className="verification-code-input" name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" required />
+                  <input id="verify-email-code" className="verification-code-input" name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" maxLength={12} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" required />
                 </label>
                 {error && <p className="notice error" role="alert">{error}</p>}
                 {message && <p className="notice success" role="status">{message}</p>}
