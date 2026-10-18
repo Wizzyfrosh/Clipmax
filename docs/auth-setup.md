@@ -49,3 +49,11 @@ Clipmax now uses Better Auth's dynamic `baseURL.allowedHosts` to accept its cano
 - If registration reports an email error, inspect Brevo transactional logs and sender-domain verification. Never expose the API key, SMTP secrets, or verification link to the browser.
 - Run the auth integration tests and browser Google-button styling test before merging. Finally test a real verification email, password login and Google OAuth using the canonical production site.
 
+
+## Six-digit email verification
+
+New email/password signup uses Better Auth's Email OTP plugin and redirects to `/verify-email?email=...`, not a clickable verification link. Users enter a six-digit, one-time code. Codes expire after five minutes, are hashed in the database, permit five attempts, and can be resent from the verification page. Signup remains public; only verified accounts can use password login. Google OAuth remains separate.
+
+Verification emails are sent via Brevo using `EMAIL_FROM=account@clipmax.froshcodeorbit.site` (or another sender that Brevo has approved), a branded HTML template, and plain-text fallback. Check Brevo's **Transactional → Logs** for accepted, deferred, bounced, blocked, and delivered messages. Vercel variables and DNS records existing do not prove Brevo is delivering. Logs now report `BREVO_DELIVERY_REJECTED` with status only, not emails or codes. HTTP 201 indicates Brevo accepted a message, not inbox delivery.
+
+Test new account registration, verify email using a one-time code, wrong code rejection, code reuse rejection, existing unverified account resend, delayed mail, and signup again with a duplicate email. The previous password-reset-by-link flow remains unchanged.
