@@ -1,0 +1,66 @@
+{
+  "name": "clipmax",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "prisma generate && next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "worker": "tsx apps/worker/worker.ts",
+    "clip": "tsx apps/worker/cli.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "test:e2e": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wizzyfrosh/Clipmax.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Wizzyfrosh/Clipmax/issues"
+  },
+  "homepage": "https://github.com/Wizzyfrosh/Clipmax#readme",
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1152.0",
+    "@aws-sdk/s3-request-presigner": "3.1152.0",
+    "@prisma/client": "6.19.3",
+    "better-auth": "1.7.8",
+    "dotenv": "18.0.8",
+    "lucide-react": "1.57.0",
+    "next": "16.4.1",
+    "openai": "7.34.0",
+    "prisma": "6.19.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "resend": "6.33.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@electric-sql/pglite-socket": "0.2.13",
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "prettier": "3.9.10",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.4"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.12"
+  }
+}

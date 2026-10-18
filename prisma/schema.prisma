@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+model User {
+  id String @id
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  suspended Boolean @default(false)
+  sessions Session[]
+  accounts Account[]
+  projects Project[]
+  quota Quota?
+}
+model Session {
+  id String @id
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@index([userId])
+}
+model Account {
+  id String @id
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+model Verification {
+  id String @id
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
+}
+model RateLimit {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  lastRequest BigInt
+}
+model Quota {
+  ownerId String @id
+  owner User @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+  allowance Int @default(60)
+  reserved Int @default(0)
+  consumed Int @default(0)
+}
+model Project {
+  id String @id @default(uuid())
+  ownerId String
+  owner User @relation(fields:[ownerId],references:[id])
+  title String
+  status String @default("uploading")
+  durationMs Int?
+  sourceKey String?
+  sourceBytes Int?
+  clipCount Int @default(3)
+  layout String @default("original")
+  transcript Json?
+  selections Json?
+  errorCode String?
+  rightsAttestedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  deletedAt DateTime?
+  uploads Upload[]
+  jobs Job[]
+  clips Clip[]
+  assets Asset[]
+  @@index([ownerId,createdAt])
+}
+model Upload {
+  id String @id @default(uuid())
+  projectId String
+  project Project @relation(fields:[projectId],references:[id])
+  uploadId String
+  objectKey String @unique
+  size Int
+  fingerprint String
+  partSize Int
+  state String @default("active")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([projectId])
+}
+model Job {
+  id String @id @default(uuid())
+  projectId String
+  project Project @relation(fields:[projectId],references:[id])
+  type String
+  status String @default("queued")
+  stage String @default("queued")
+  payload Json
+  dedupeKey String @unique
+  requestHash String
+  attempt Int @default(0)
+  leaseToken String?
+  leaseUntil DateTime?
+  availableAt DateTime @default(now())
+  cancelRequested Boolean @default(false)
+  reservedMinutes Int @default(0)
+  settled Boolean @default(false)
+  errorCode String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status,availableAt])
+  @@index([projectId])
+}
+model Clip {
+  id String @id @default(uuid())
+  projectId String
+  project Project @relation(fields:[projectId],references:[id])
+  ordinal Int
+  currentRevision Int @default(1)
+  revisions Revision[]
+  feedback Feedback[]
+  @@unique([projectId,ordinal])
+}
+model Revision {
+  id String @id @default(uuid())
+  clipId String
+  clip Clip @relation(fields:[clipId],references:[id])
+  revision Int
+  title String
+  reason String
+  startMs Int
+  endMs Int
+  layout String
+  captions Json
+  script String
+  voicePrompt String
+  scriptStale Boolean @default(false)
+  status String @default("pending")
+  renderCount Int @default(0)
+  scriptCount Int @default(0)
+  createdAt DateTime @default(now())
+  assets Asset[]
+  @@unique([clipId,revision])
+}
+model Asset {
+  id String @id @default(uuid())
+  projectId String
+  project Project @relation(fields:[projectId],references:[id])
+  revisionId String?
+  revision Revision? @relation(fields:[revisionId],references:[id])
+  kind String
+  objectKey String @unique
+  createdAt DateTime @default(now())
+  @@index([projectId])
+}
+model UsageEvent {
+  id String @id @default(uuid())
+  ownerId String
+  jobId String
+  kind String
+  units Int
+  detail Json
+  dedupeKey String @unique
+  createdAt DateTime @default(now())
+  @@index([ownerId,createdAt])
+}
+model Feedback {
+  id String @id @default(uuid())
+  clipId String
+  clip Clip @relation(fields:[clipId],references:[id])
+  ownerId String
+  useful Boolean
+  comment String
+  @@unique([clipId,ownerId])
+}
