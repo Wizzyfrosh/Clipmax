@@ -47,7 +47,7 @@ Rules:
 
 - Upload media directly to private R2 storage using S3 multipart sessions, scoped signed UploadPart URLs, and persisted resume metadata. Do not proxy large files through Next.js handlers or assume a tus endpoint exists.
 - Authorize initiate/sign/list/complete/abort operations. Reconcile parts using R2 ListParts, verify part and total sizes before completion, verify the final object, and clean up abandoned uploads. A signed URL is not a total-byte quota. Configure CORS and ETag exposure; CORS is not authorization.
-- Use Better Auth's Prisma adapter and supported Next.js handler. Generate and review its auth models, preserving supported ID types and matching foreign keys. Configure Resend for verification/reset delivery; test revoked/expired sessions and reset tokens.
+- Use Better Auth's Prisma adapter and supported Next.js handler. Generate and review its auth models, preserving supported ID types and matching foreign keys. Configure Brevo for verification/reset delivery; test revoked/expired sessions and reset tokens.
 - Use bounded database connection pools and transaction-capable queue claims. Avoid session-scoped behavior through transaction pooling. Back off idle polling and measure its effect on Neon compute cost.
 - API handlers validate, authorize, reserve quota, enqueue, and respond promptly. Run transcription orchestration and FFmpeg in the worker.
 - Keep video bytes out of Postgres. Store metadata and object references there.
@@ -88,7 +88,7 @@ No project commands are verified by this file alone. Discover them from the repo
 - Verify identity server-side using the supported auth integration. Check resource ownership on every project, asset, clip, job, download, and mutation.
 - Keep Neon database access server-only. Centralize ownership-filtered reads and mutations; authentication and Prisma do not automatically provide authorization. Use restricted runtime database roles distinct from migration/schema-owner credentials.
 - Do not weaken authorization to fix a permission error. Workers must validate parent-child ownership. If PostgreSQL RLS is added as defense in depth, test transaction-local identity and non-owner roles; do not assume pooled connections retain session context.
-- Keep Neon connection strings, Better Auth secrets, R2 access credentials, Resend keys, and AI provider secrets server-only. Public-prefixed frontend variables must contain only intentionally public values.
+- Keep Neon connection strings, Better Auth secrets, R2 access credentials, Brevo keys, and AI provider secrets server-only. Public-prefixed frontend variables must contain only intentionally public values.
 - Never use user-editable metadata for admin authorization. Use trusted server-controlled roles and account-status checks.
 - Prevent linking assets or clips to another owner's project. Test reads, writes, ownership changes, and guessed IDs with two accounts.
 - Keep buckets private; use server-generated object keys and short-lived authorized download links. Do not log signed URLs.

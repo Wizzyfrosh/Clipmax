@@ -1,6 +1,12 @@
 import { AuthForm } from "@/components/auth-form";
-import { authConfigured } from "@/lib/config";
+import { authConfigured, googleConfigured } from "@/lib/config";
 export const dynamic = "force-dynamic";
 export default function Page() {
-  return <AuthForm mode="sign-up" configured={authConfigured()} />;
+  return (
+    <AuthForm
+      mode="sign-up"
+      configured={authConfigured()}
+      googleConfigured={googleConfigured()}
+    />
+  );
 }

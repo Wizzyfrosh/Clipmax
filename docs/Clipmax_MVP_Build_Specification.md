@@ -93,7 +93,7 @@ Use a small TypeScript application with one separate media worker. Do not start 
 | Web and control API | Next.js, TypeScript, Tailwind, accessible component primitives | One codebase for UI and short authenticated API operations. Pin supported versions at implementation. |
 | Database and ORM | Neon PostgreSQL + Prisma | Server-only relational access, versioned migrations, and explicit ownership checks. [S6] |
 | Authentication | Better Auth + Prisma adapter | Database-backed sessions, verification and password reset; configure email delivery. [S7] |
-| Transactional email | Resend — proposed provider | Verification and password-reset messages; verify sender domain and current plan before launch. |
+| Transactional email | Brevo — proposed provider | Verification and password-reset messages; verify sender domain and current plan before launch. |
 | Object storage | Private Cloudflare R2 buckets + AWS SDK for JavaScript v3 | S3-compatible private media access through scoped signed URLs; separate storage credentials. [S4] |
 | Upload client | S3 multipart browser uploader | Persist multipart sessions and resume completed parts; no tus service required. [S1] |
 | Media worker | Node.js container with FFmpeg/ffprobe | Durable background processing on a CPU host; benchmark 2 vCPU/4 GB as a starting candidate, not a capacity promise. |
@@ -136,13 +136,13 @@ The API enqueues work and responds with HTTP 202. The browser polls authorized p
 
 Use Better Auth's supported session and password handling rather than custom cryptography. Require email verification before processing, implement password-reset delivery, rate-limit auth and email actions, configure trusted origins and secure cookies, and revoke sessions on account suspension. Admin authorization comes from trusted server-controlled data. A route guard or middleware redirect alone is not API authorization.
 
-Configure Resend with a verified sending domain, delivery/error handling, and separate staging credentials. Test verification, reset, expired/reused tokens, login, logout, and session revocation end to end. Auth tables, credentials, and tokens must never be returned by generic application endpoints.
+Configure Brevo with a verified sending domain, delivery/error handling, and separate staging credentials. Test verification, reset, expired/reused tokens, login, logout, and session revocation end to end. Auth tables, credentials, and tokens must never be returned by generic application endpoints.
 
 Use a bounded Prisma connection pool for web and worker processes. Neon pooled connections serve ordinary short queries and transactions; use a separately configured migration connection according to the pinned Prisma/Neon versions. Queue claims must execute on one transaction-capable connection. Do not use session-scoped locks or LISTEN/NOTIFY through transaction pooling. Poll with idle backoff; persistent queue polling may prevent scale-to-zero, so include active database compute in the cost model. Do not assume the free tier covers an always-running worker.
 
 R2 CORS must permit the application's origins and required upload methods/headers and expose ETag. CORS does not authorize users. Disable public bucket access, scope R2 API tokens, and authorize multipart initiation, part signing, resume, completion, abort, and download separately. Server-side raw SQL for queue claims must be parameterized.
 
-Required server configuration categories: DATABASE_URL; migration database URL where needed; BETTER_AUTH_SECRET and canonical app URL; R2 endpoint/account identifier, bucket and scoped access credentials; RESEND_API_KEY and sender address; speech/text provider settings. Keep secrets out of NEXT_PUBLIC variables. Maintain placeholders in .env.example and validate configuration at startup.
+Required server configuration categories: DATABASE_URL; migration database URL where needed; BETTER_AUTH_SECRET and canonical app URL; R2 endpoint/account identifier, bucket and scoped access credentials; BREVO_API_KEY and sender address; speech/text provider settings. Keep secrets out of NEXT_PUBLIC variables. Maintain placeholders in .env.example and validate configuration at startup.
 
 This replaces one managed backend bundle with explicit components. It increases integration and operational responsibility; it is not a claim of lower total cost. Reprice the provisional budget after benchmarking.
 
@@ -278,7 +278,7 @@ All application endpoints require verified authentication except narrowly define
 
 Idempotency keys are scoped by user and endpoint with a request-body hash. Same key/same payload returns the original result; same key/different payload returns 409. Store the result for at least 24 hours. Use 401, 404 for inaccessible resources, 409 for state conflicts, 413 for oversize, 422 for unsupported input, and 429 for rate/quota limits with clear codes.
 
-External services at launch: Neon PostgreSQL connection (not a browser API), Cloudflare R2 S3 API, Resend email API, one transcription API, and one structured text-generation API. Better Auth is an application library with its own routes, not an additional hosted auth service. Prisma is the ORM and migration layer, not another database. Payments, social APIs, stock footage, and voice-generation APIs are not required for the pilot.
+External services at launch: Neon PostgreSQL connection (not a browser API), Cloudflare R2 S3 API, Brevo email API, one transcription API, and one structured text-generation API. Better Auth is an application library with its own routes, not an additional hosted auth service. Prisma is the ORM and migration layer, not another database. Payments, social APIs, stock footage, and voice-generation APIs are not required for the pilot.
 
 ## 10. Security, privacy, and abuse controls
 
@@ -403,5 +403,5 @@ Original references reviewed 28 September 2026; replacement stack references rev
 - [S6: Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
 - [S7: Better Auth, Prisma and Next.js integration](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
 - [S8: Better Auth email flows](https://better-auth.com/docs/authentication/email-password)
-- [S9: Resend Node.js integration](https://resend.com/docs/send-with-nodejs)
+- [S9: Brevo Node.js integration](https://developers.brevo.com/docs/send-a-transactional-email)
 - [S5: PostgreSQL SELECT and SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html)

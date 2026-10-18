@@ -30,7 +30,7 @@ Prepared migration ID: `88321f3b-6b5d-49af-b90d-878fd2c188c9`; parent branch: `b
 
 GitHub Actions run `38685826859` passed, including browser tests, on commit `7935d218df5f9c5d64f6e1a0d11bb069d2d2d733`. The latest invitation-gate changes pass local tests/build; GitHub Actions run 38733902655 also passed on commit f7c33b4f731841334f886d386ad89df8bbc36878.
 
-The protected Vercel preview is deployed with database/auth configuration. Verified email delivery remains pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Resend credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
+The protected Vercel preview is deployed with database/auth configuration. Verified email delivery remains pending. Signup now requires an address in `PILOT_INVITE_EMAILS` and configured Brevo credentials. An empty allowlist closes registration. Integration tests verify denied registration creates no account.
 
 - Contract tests cover candidate bounds/overlap and clip-relative captions.
 - Media tests generate a synthetic permissioned fixture and execute real FFmpeg cuts in original and padded vertical layouts.
@@ -40,7 +40,7 @@ The protected Vercel preview is deployed with database/auth configuration. Verif
 
 ## Must pass before pilot
 
-1. Configure staging Neon, R2, Resend and OpenAI; run real signup, verification, reset, upload/resume, processing, edit, export and deletion.
+1. Configure staging Neon, R2, Brevo and OpenAI; run real signup, verification, reset, upload/resume, processing, edit, export and deletion.
 2. Evaluate permissioned English/Nigerian English video samples with creators. No measured clip usefulness, cost or production latency is available yet.
 3. Exercise concurrent submissions, lease expiry, worker crashes after provider success and after upload, cancellation and deletion races on real PostgreSQL/R2.
 4. Validate exact UI fidelity, responsive layout, focus/accessibility and playback in a browser against the supplied reference.

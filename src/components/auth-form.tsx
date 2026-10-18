@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowLeft, Check, Scissors } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -8,14 +8,37 @@ type Mode = "sign-in" | "sign-up" | "forgot-password" | "reset-password";
 export function AuthForm({
   mode,
   configured,
+  googleConfigured = false,
 }: {
   mode: Mode;
   configured: boolean;
+  googleConfigured?: boolean;
 }) {
   const [show, setShow] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("error"))
+      setError(
+        "Sign-in could not be completed. Use your invited email address and try again.",
+      );
+  }, []);
+  async function googleSignIn() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+        errorCallbackURL: "/sign-in",
+      });
+      if (result.error) throw new Error(result.error.message);
+    } catch {
+      setError("Google sign-in could not be started. Please try again.");
+      setBusy(false);
+    }
+  }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -31,9 +54,12 @@ export function AuthForm({
     const email = String(form.get("email") ?? "").trim(),
       password = String(form.get("password") ?? "");
     try {
+      if (
+        (mode === "sign-up" || mode === "reset-password") &&
+        password !== form.get("confirm")
+      )
+        throw Error("Your passwords do not match.");
       if (mode === "sign-up") {
-        if (password !== form.get("confirm"))
-          throw Error("Your passwords do not match.");
         const r = await authClient.signUp.email({
           name: String(form.get("name")),
           email,
@@ -146,6 +172,24 @@ export function AuthForm({
             <span className="banner-dots">•••</span>
           </div>
           <form className="auth-sheet" onSubmit={submit}>
+            {(signin || signup) && (
+              <>
+                <button
+                  type="button"
+                  className="button"
+                  disabled={busy || !configured || !googleConfigured}
+                  onClick={googleSignIn}
+                >
+                  Continue with Google
+                </button>
+                {!googleConfigured && (
+                  <p className="fine-print">
+                    Google sign-in is awaiting configuration.
+                  </p>
+                )}
+                <p className="fine-print">Or continue with your email</p>
+              </>
+            )}
             {signup && (
               <label>
                 Full name
@@ -179,9 +223,9 @@ export function AuthForm({
                     aria-label="Password"
                     type={show ? "text" : "password"}
                     autoComplete={signin ? "current-password" : "new-password"}
-                    minLength={signin ? 1 : 12}
+                    minLength={signin ? 1 : 8}
                     placeholder={
-                      signin ? "Enter your password" : "At least 12 characters"
+                      signin ? "Enter your password" : "At least 8 characters"
                     }
                     required
                   />
@@ -196,7 +240,7 @@ export function AuthForm({
                 </div>
               </label>
             )}
-            {signup && (
+            {(signup || mode === "reset-password") && (
               <label>
                 Confirm password
                 <input
@@ -205,7 +249,7 @@ export function AuthForm({
                   autoComplete="new-password"
                   placeholder="Enter password again"
                   required
-                  minLength={12}
+                  minLength={8}
                 />
               </label>
             )}
