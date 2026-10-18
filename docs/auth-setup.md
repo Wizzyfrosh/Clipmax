@@ -37,3 +37,15 @@ References: https://better-auth.com/docs/authentication/google and https://bette
 6. Redeploy and test Continue with Google in a regular browser.
 
 Keep all credentials server-only. Preview configuration does not automatically configure Production. Do not regenerate an existing working BETTER_AUTH_SECRET without planning session invalidation.
+
+## Fixing Invalid origin and preview authentication
+
+Clipmax now uses Better Auth's dynamic `baseURL.allowedHosts` to accept its canonical production domain, the `clipmax-beta.vercel.app` alias, and deployment hosts belonging to the Clipmax Vercel project. It still validates the browser Origin header; do **not** disable CSRF checking or add `*.vercel.app` as a blanket trusted origin.
+
+- Use `https://clipmax.froshcodeorbit.site` for **production Google login**. Its Google OAuth redirect URI should be exactly `https://clipmax.froshcodeorbit.site/api/auth/callback/google`.
+- Google login through a unique Vercel preview URL additionally requires that preview URL's exact callback to be registered in Google Cloud. Prefer using the canonical domain for public Google sign-in; Google Cloud does not support wildcard callback URIs.
+- Branch previews require **their own** `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`. The existing preview database/secret are scoped to a specific feature branch, and are **not** automatically shared with all previews. Do not add production credentials to untrusted preview branches.
+- In Vercel, verify Production includes `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BREVO_API_KEY`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`, then redeploy.
+- If registration reports an email error, inspect Brevo transactional logs and sender-domain verification. Never expose the API key, SMTP secrets, or verification link to the browser.
+- Run the auth integration tests and browser Google-button styling test before merging. Finally test a real verification email, password login and Google OAuth using the canonical production site.
+
