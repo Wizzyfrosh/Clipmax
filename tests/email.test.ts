@@ -67,3 +67,18 @@ it("returns a send error for API rejection without including a private code in l
     logs.mockRestore();
   }
 });
+
+it("logs only Brevo acceptance status, never the one-time code or recipient", async () => {
+  vi.stubEnv("BREVO_API_KEY", "test-key");
+  vi.stubEnv("EMAIL_FROM", "account@clipmax.froshcodeorbit.site");
+  const logs = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 201 })));
+  try {
+    await sendVerificationCodeEmail("test@example.test", "730492");
+    expect(logs).toHaveBeenCalledWith("BREVO_DELIVERY_ACCEPTED", { status: 201 });
+    expect(JSON.stringify(logs.mock.calls)).not.toContain("730492");
+    expect(JSON.stringify(logs.mock.calls)).not.toContain("test@example.test");
+  } finally {
+    logs.mockRestore();
+  }
+});

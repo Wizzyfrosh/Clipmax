@@ -97,6 +97,7 @@ describe("database authorization and accounting", () => {
     process.env.EMAIL_FROM = "test@example.test";
     const { createAuth } = await import("../src/lib/auth");
     const auth = createAuth();
+    expect(auth.options.emailVerification?.sendOnSignUp).toBe(true);
     const post = async (path: string, body: unknown) => {
       // Each case starts a fresh rate-limit window; production limits stay enabled.
       await db.rateLimit.deleteMany();
