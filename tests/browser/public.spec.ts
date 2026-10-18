@@ -95,3 +95,14 @@ test("Google sign-in uses its original multicolor mark on a neutral button", asy
   );
   expect(logoColors).toEqual(["#EA4335", "#4285F4", "#FBBC05", "#34A853"]);
 });
+
+test("six-digit email verification screen allows code entry and shows resend control", async ({ page }) => {
+  await page.goto("/verify-email?email=example%40test.invalid");
+  await expect(page.getByRole("heading", { name: "Check your inbox." })).toBeVisible();
+  await expect(page.getByLabel("Email address")).toHaveValue("example@test.invalid");
+  const code = page.getByLabel("Verification code");
+  await code.fill("12a34 56");
+  await expect(code).toHaveValue("123456");
+  await expect(page.getByRole("button", { name: "VERIFY EMAIL" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Resend code/ })).toBeVisible();
+});
