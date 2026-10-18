@@ -66,7 +66,8 @@ export function createAuth() {
         email(user.email, "Reset your Clipmax password", url),
     },
     // Email verification is handled only by the OTP plugin, not links.
-    // OTP plugin overrides the default link notification on signup.\n    emailVerification: { sendOnSignUp: true },
+    // OTP replaces email-verification links; trigger delivery during signup.
+    emailVerification: { sendOnSignUp: true },
     plugins: [
       emailOTP({
         otpLength: 6,
@@ -78,6 +79,8 @@ export function createAuth() {
         disableSignUp: true,
         async sendVerificationOTP({ email: address, otp, type }) {
           if (type !== "email-verification") return;
+          // No recipient address, OTP or request body in application logs.
+          console.info("CLIPMAX_VERIFICATION_EMAIL_DISPATCH");
           await sendVerificationCodeEmail(address, otp);
         },
       }),
