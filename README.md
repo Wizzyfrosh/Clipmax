@@ -1,6 +1,6 @@
 # Clipmax
 
-Private spoken-video clipping workspace. Next.js + TypeScript, Neon PostgreSQL / Prisma, Better Auth, private Cloudflare R2, Resend, and a separate Node/FFmpeg worker. No Supabase. Generates MP4 clips, source-caption SRT files, original commentary and external voice-generation prompts—not voice audio.
+Private spoken-video clipping workspace. Next.js + TypeScript, Neon PostgreSQL / Prisma, Better Auth, private Cloudflare R2, Brevo, and a separate Node/FFmpeg worker. No Supabase. Generates MP4 clips, source-caption SRT files, original commentary and external voice-generation prompts—not voice audio.
 
 ## Status
 
@@ -16,7 +16,7 @@ Use Node 22.12+ and npm. Install FFmpeg/ffprobe on the worker machine.
 4. Generate a random authentication secret with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Set the canonical `BETTER_AUTH_URL`.
 5. Run `npm run db:generate` and `npm run db:migrate` against your new staging database. Do not reset an existing database.
 6. Configure a private R2 bucket and scoped credentials. Permit your exact web origin in CORS with PUT/GET/HEAD, required request headers, and expose ETag. Configure an object expiry backstop and abandoned multipart cleanup; see deployment notes.
-7. Configure a verified Resend sender. Verification and password reset require working email delivery.
+7. Configure a verified Brevo sender. Verification and password reset require working email delivery.
 8. Run `npm run dev` and, separately, `npm run worker`.
 
 Keep `PROCESSING_ENABLED=false` until provider setup and budget review are complete. Select a supported structured-output text model via `TEXT_MODEL`; speech uses timestamped `whisper-1` segments. Enable processing on both web and worker only for controlled testing. Budget values are conservative reservations, not measured provider bills or a guaranteed external spend cap.

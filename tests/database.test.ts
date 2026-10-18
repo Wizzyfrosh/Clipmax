@@ -7,14 +7,9 @@ const { sent } = vi.hoisted(() => ({
   sent: [] as { text: string; subject: string }[],
 }));
 // Only external email delivery is mocked; auth handlers and PostgreSQL are real.
-vi.mock("resend", () => ({
-  Resend: class {
-    emails = {
-      send: async (message: { text: string; subject: string }) => {
-        sent.push(message);
-        return { data: { id: "test-email" }, error: null };
-      },
-    };
+vi.mock("../src/lib/email", () => ({
+  sendAuthEmail: async (_to: string, subject: string, url: string) => {
+    sent.push({ subject, text: `${subject}\n\n${url}` });
   },
 }));
 
@@ -93,7 +88,7 @@ describe("database authorization and accounting", () => {
   });
   it("does not create an invited account when verification email is unavailable", async () => {
     process.env.PILOT_INVITE_EMAILS = " INVITED@example.test ";
-    delete process.env.RESEND_API_KEY;
+    delete process.env.BREVO_API_KEY;
     delete process.env.EMAIL_FROM;
     const { getAuth } = await import("../src/lib/auth");
     const response = await getAuth().handler(
@@ -118,7 +113,7 @@ describe("database authorization and accounting", () => {
   });
   it("verifies email, accepts eight characters, resets once and revokes sessions", async () => {
     process.env.PILOT_INVITE_EMAILS = "flow@example.test";
-    process.env.RESEND_API_KEY = "test-only";
+    process.env.BREVO_API_KEY = "test-only";
     process.env.EMAIL_FROM = "test@example.test";
     const { createAuth } = await import("../src/lib/auth");
     const auth = createAuth();

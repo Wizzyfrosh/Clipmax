@@ -1,18 +1,9 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { Resend } from "resend";
+import { sendAuthEmail as email } from "./email";
 import { db } from "./db";
 import { googleConfigured, required } from "./config";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-async function email(to: string, subject: string, url: string) {
-  const result = await new Resend(required("RESEND_API_KEY")).emails.send({
-    from: required("EMAIL_FROM"),
-    to,
-    subject,
-    text: `${subject}\n\n${url}\n\nIf you did not request this, ignore this email.`,
-  });
-  if (result.error) throw new Error("EMAIL_DELIVERY_FAILED");
-}
 function invited(email: string) {
   return (process.env.PILOT_INVITE_EMAILS ?? "")
     .split(",")
@@ -42,7 +33,7 @@ export function createAuth() {
               "Clipmax is in private testing. Ask the project owner for an invitation.",
           });
         }
-        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+        if (!process.env.BREVO_API_KEY || !process.env.EMAIL_FROM) {
           throw new APIError("SERVICE_UNAVAILABLE", {
             code: "EMAIL_NOT_CONFIGURED",
             message:
