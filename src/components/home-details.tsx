@@ -86,7 +86,7 @@ const faqs = [
   ],
   [
     "Is Clipmax open to everyone yet?",
-    "Clipmax is in private testing. Registration requires an approved email address, and live processing is still being configured and validated. The previews on this page illustrate the workflow; they are not generated results or a promise of availability.",
+    "Registration is open to everyone. Live processing is still being configured and validated. The previews on this page illustrate the workflow; they are not generated results or a promise of availability.",
   ],
 ];
 
@@ -482,7 +482,7 @@ export function HomeDetails() {
           Explore Clipmax <ArrowRight size={18} />
         </Link>
         <small>
-          Private pilot · Approved accounts only · Processing setup in progress
+          Open registration · Private projects · Processing setup in progress
         </small>
       </section>
     </div>

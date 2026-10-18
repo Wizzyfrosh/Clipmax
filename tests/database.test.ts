@@ -63,31 +63,8 @@ afterAll(async () => {
   await pg.close();
 });
 describe("database authorization and accounting", () => {
-  it("rejects uninvited signup before creating an account", async () => {
-    process.env.PILOT_INVITE_EMAILS = "invited@example.test";
-    const { getAuth } = await import("../src/lib/auth");
-    const response = await getAuth().handler(
-      new Request("http://localhost:3000/api/auth/sign-up/email", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          origin: "http://localhost:3000",
-        },
-        body: JSON.stringify({
-          name: "Uninvited",
-          email: "outside@example.test",
-          password: "testpassword123",
-        }),
-      }),
-    );
-    expect(response.status).toBe(403);
-    expect((await response.json()).code).toBe("INVITATION_REQUIRED");
-    expect(
-      await db.user.count({ where: { email: "outside@example.test" } }),
-    ).toBe(0);
-  });
-  it("does not create an invited account when verification email is unavailable", async () => {
-    process.env.PILOT_INVITE_EMAILS = " INVITED@example.test ";
+  it("does not create an account when verification email is unavailable", async () => {
+    delete process.env.PILOT_INVITE_EMAILS;
     delete process.env.BREVO_API_KEY;
     delete process.env.EMAIL_FROM;
     const { getAuth } = await import("../src/lib/auth");
@@ -112,7 +89,7 @@ describe("database authorization and accounting", () => {
     ).toBe(0);
   });
   it("verifies email, accepts eight characters, resets once and revokes sessions", async () => {
-    process.env.PILOT_INVITE_EMAILS = "flow@example.test";
+    delete process.env.PILOT_INVITE_EMAILS;
     process.env.BREVO_API_KEY = "test-only";
     process.env.EMAIL_FROM = "test@example.test";
     const { createAuth } = await import("../src/lib/auth");
@@ -189,10 +166,10 @@ describe("database authorization and accounting", () => {
         .status,
     ).toBe(200);
   });
-  it("gates Google provisioning and starts the OAuth redirect", async () => {
+  it("allows public verified Google provisioning and starts the OAuth redirect", async () => {
     process.env.GOOGLE_CLIENT_ID = "test-client";
     process.env.GOOGLE_CLIENT_SECRET = "test-secret";
-    process.env.PILOT_INVITE_EMAILS = "google@example.test";
+    delete process.env.PILOT_INVITE_EMAILS;
     const { createAuth } = await import("../src/lib/auth");
     const auth = createAuth();
     const validate = auth.options.user!.validateUserInfo!;
@@ -207,7 +184,7 @@ describe("database authorization and accounting", () => {
         user: { email: "outside@example.test", emailVerified: true },
         source,
       }),
-    ).toEqual({ error: "invitation_required" });
+    ).toBeUndefined();
     expect(
       await validate({
         user: { email: "google@example.test", emailVerified: false },
