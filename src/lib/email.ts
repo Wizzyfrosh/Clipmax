@@ -36,6 +36,9 @@ async function sendBrevoMail({ to, subject, text, html }: Mail) {
     console.error("BREVO_DELIVERY_REJECTED", { status: response.status });
     throw new Error("EMAIL_DELIVERY_FAILED");
   }
+  // No code, token or recipient is logged. This confirms provider acceptance
+  // only; check Brevo Transactional Logs for delivered/bounced status.
+  console.info("BREVO_DELIVERY_ACCEPTED", { status: response.status });
   // Brevo HTTP 201 means accepted, not that the email reached an inbox.
 }
 
