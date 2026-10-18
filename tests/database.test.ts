@@ -249,11 +249,22 @@ describe("database authorization and accounting", () => {
         `${origin}/api/auth/callback/google`,
       );
     }
-    const response = await startGoogle(
-      "https://clipmax.froshcodeorbit.site",
-      "https://untrusted.example.com",
+    // A credential submission from an untrusted site must not be allowed.
+    const response = await auth.handler(
+      new Request("https://clipmax.froshcodeorbit.site/api/auth/sign-in/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://untrusted.example.com",
+          cookie: "better-auth.session_token=invalid",
+        },
+        body: JSON.stringify({
+          email: "flow@example.test",
+          password: "Newpass8",
+        }),
+      }),
     );
-    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(response.status).toBe(403);
   });
   it("allows owner, denies other account", async () => {
     expect((await ownedProject(projectId, "owner-a")).title).toBe(
