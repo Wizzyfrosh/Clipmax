@@ -9,7 +9,8 @@ import {
   ownedProject,
   HttpError,
 } from "@/lib/http";
-import { limits } from "@/lib/config";
+import { limits, storageConfigured } from "@/lib/config";
+import { verifiedUploadedParts } from "@/lib/upload-parts";
 import * as storage from "@/lib/storage";
 import { enqueue } from "@/lib/jobs";
 import { segmentsSchema } from "../../../../packages/contracts";
@@ -84,6 +85,8 @@ async function handler(
         });
       }
       if (p.length === 1 && method === "POST") {
+        if (!storageConfigured())
+          throw new HttpError(503, "STORAGE_NOT_CONFIGURED");
         const data = z
           .object({
             title: z.string().trim().min(1).max(120),
@@ -164,6 +167,8 @@ async function handler(
       if (p[2] === "process" && method === "POST")
         return json(await enqueue(u.id, project.id, "process", {}, key), 202);
       if (p[2] === "uploads" && method === "POST") {
+        if (!storageConfigured())
+          throw new HttpError(503, "STORAGE_NOT_CONFIGURED");
         if (project.status !== "uploading")
           throw new HttpError(409, "SOURCE_ALREADY_SET");
         const data = z
@@ -228,7 +233,11 @@ async function handler(
         return json({
           parts: (
             await storage.listParts(upload.objectKey, upload.uploadId)
-          ).map((x) => ({ partNumber: x.PartNumber, size: x.Size })),
+          ).map((x) => ({
+            partNumber: x.PartNumber,
+            size: x.Size,
+            uploaded: Boolean(x.ETag),
+          })),
         });
       if (p[2] === "parts" && p[3] === "sign" && method === "POST") {
         const { partNumber } = z
@@ -266,19 +275,11 @@ async function handler(
           const parts = (
             await storage.listParts(upload.objectKey, upload.uploadId)
           ).sort((a, b) => (a.PartNumber ?? 0) - (b.PartNumber ?? 0));
-          const count = Math.ceil(upload.size / upload.partSize);
-          if (
-            parts.length !== count ||
-            parts.some(
-              (part, i) =>
-                part.PartNumber !== i + 1 ||
-                part.Size !==
-                  (i === count - 1
-                    ? upload.size - i * upload.partSize
-                    : upload.partSize) ||
-                !part.ETag,
-            )
-          )
+          if (!verifiedUploadedParts(
+            parts,
+            upload.size,
+            upload.partSize,
+          ))
             throw new HttpError(422, "PARTS_INCOMPLETE");
           await storage.completeUpload(
             upload.objectKey,
