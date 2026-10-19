@@ -23,3 +23,17 @@ export function googleConfigured() {
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
   );
 }
+
+/**
+ * Storage is not optional for uploading: fail before creating an orphan project.
+ * This check only reports whether required configuration exists, not whether
+ * the bucket, credentials, CORS, and lifecycle rules are actually valid.
+ */
+export function storageConfigured() {
+  return [
+    "R2_ENDPOINT",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_BUCKET",
+  ].every((key) => Boolean(process.env[key]?.trim()));
+}
