@@ -234,9 +234,9 @@ async function handler(
           parts: (
             await storage.listParts(upload.objectKey, upload.uploadId)
           ).map((x) => ({
-            partNumber: x.PartNumber,
-            size: x.Size,
-            uploaded: Boolean(x.ETag),
+            PartNumber: x.PartNumber,
+            Size: x.Size,
+            ETag: x.ETag,
           })),
         });
       if (p[2] === "parts" && p[3] === "sign" && method === "POST") {
