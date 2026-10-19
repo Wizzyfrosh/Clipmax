@@ -1,5 +1,23 @@
 # Verification and remaining launch gates
 
+## Phase 2 — R2 upload readiness and resume hardening (19 October 2026)
+
+The web API now refuses to create new video projects or initiate uploads when the required private R2 variables are absent. The new-project screen explains unavailable uploads instead of creating an unusable record. Existing projects and account authentication remain accessible.
+
+Multipart status returns per-part number, size and ETag from R2. The UI only skips parts after confirming the size and ETag correspond to the exact expected part, and progress reflects confirmed remote parts. Completion also uses the same strict server-side checks. Unit tests cover incomplete, missing, reordered and malformed parts.
+
+**Remaining external requirements:**
+1. Create a private Cloudflare R2 bucket and scoped R2 API token with object permissions restricted to that bucket.
+2. Set `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET` only in the Vercel environment of the intended deployment; do not expose secrets through `NEXT_PUBLIC_` variables or put them in GitHub.
+3. Configure CORS for exactly `https://clipmax.froshcodeorbit.site` using PUT, GET, HEAD; allow Content-Type and required signed headers, and expose ETag. If using a separately authorized staging host, configure it explicitly rather than allowing all origins.
+4. Configure abandoned multipart upload cleanup and object-expiry lifecycle rules. Confirm storage retention against user-facing seven-day expiry and worker deletion behavior.
+5. Deploy and test one permissioned small MP4, one interrupted/resumed upload, one retry with malformed/missing part, and one completed upload with a running probe worker. Review costs before enabling OpenAI processing.
+6. Keep `PROCESSING_ENABLED=false` until live R2/Neon/worker and AI budget safety checks pass.
+
+Automated checks do not prove real R2 CORS behavior, provider authentication, resumable network recovery, or worker availability. Do not mark Phase 2 complete until those live tests pass.
+
+
+
 This is an implementation checkpoint, not completion of all PRD phase gates.
 
 ## Offline media hardening — 18 October 2026
