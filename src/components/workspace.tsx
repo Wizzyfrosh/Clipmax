@@ -338,6 +338,7 @@ export function NewProject({ storageReady = true }: { storageReady?: boolean }) 
                 ),
               });
               if (!r.ok) throw Error("Part upload failed");
+              completed.add(part);
               done = true;
             } catch (e) {
               if (attempt === 2) throw e;
@@ -345,7 +346,7 @@ export function NewProject({ storageReady = true }: { storageReady?: boolean }) 
             }
           }
         }
-        setProgress(Math.round((part / count) * 100));
+        setProgress(Math.round((completed.size / count) * 100));
       }
       await api(`uploads/${upload.id}/complete`, "POST", {});
       localStorage.removeItem(`clipmax-upload:${fingerprint}`);
