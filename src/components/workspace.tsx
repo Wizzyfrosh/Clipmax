@@ -23,6 +23,7 @@ import {
 import { Brand } from "./brand";
 import { authClient } from "@/lib/auth-client";
 import type { Segment } from "../../packages/contracts";
+import { uploadedPartNumbers } from "@/lib/upload-parts";
 type Summary = {
   id: string;
   title: string;
@@ -279,7 +280,7 @@ export function Dashboard({ name }: { name: string }) {
     </div>
   );
 }
-export function NewProject() {
+export function NewProject({ storageReady = true }: { storageReady?: boolean }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null),
     [busy, setBusy] = useState(false),
@@ -287,7 +288,7 @@ export function NewProject() {
     [error, setError] = useState("");
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !storageReady) return;
     setBusy(true);
     setError("");
     const data = new FormData(e.currentTarget);
@@ -312,10 +313,13 @@ export function NewProject() {
         fingerprint,
       });
       const current = await api(`uploads/${upload.id}/parts`);
-      const completed = new Set<number>(
-        current.parts.map((p: { partNumber: number }) => p.partNumber),
+      const completed = uploadedPartNumbers(
+        current.parts,
+        file.size,
+        upload.partSize,
       );
       const count = Math.ceil(file.size / upload.partSize);
+      setProgress(Math.round((completed.size / count) * 100));
       for (let part = 1; part <= count; part++) {
         if (!completed.has(part)) {
           let done = false;
@@ -334,6 +338,7 @@ export function NewProject() {
                 ),
               });
               if (!r.ok) throw Error("Part upload failed");
+              completed.add(part);
               done = true;
             } catch (e) {
               if (attempt === 2) throw e;
@@ -341,7 +346,7 @@ export function NewProject() {
             }
           }
         }
-        setProgress(Math.round((part / count) * 100));
+        setProgress(Math.round((completed.size / count) * 100));
       }
       await api(`uploads/${upload.id}/complete`, "POST", {});
       localStorage.removeItem(`clipmax-upload:${fingerprint}`);
@@ -371,6 +376,12 @@ export function NewProject() {
           <p>One video. A whole new set of possibilities.</p>
         </div>
       </div>
+      {!storageReady && (
+        <p className="notice error" role="alert">
+          Video uploads are temporarily unavailable while secure storage is
+          being configured. Your account and existing projects are unaffected.
+        </p>
+      )}
       <form className="panel upload-form" onSubmit={submit}>
         <label className={`dropzone ${file ? "selected" : ""}`}>
           <input
@@ -426,7 +437,7 @@ export function NewProject() {
         </p>
         {error && (
           <p className="notice error" role="alert">
-            {error}. Your upload can resume when you choose the same file.
+            {error}. If the upload was interrupted, choose the same video to resume.
           </p>
         )}
         {busy && (
@@ -439,7 +450,7 @@ export function NewProject() {
             </p>
           </div>
         )}
-        <button className="button" disabled={!file || busy}>
+        <button className="button" disabled={!file || busy || !storageReady}>
           {busy ? "Uploading…" : "Upload video"} <ArrowUpRight size={17} />
         </button>
       </form>
