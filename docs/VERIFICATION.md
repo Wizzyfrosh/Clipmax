@@ -1,5 +1,15 @@
 # Verification and remaining launch gates
 
+## Groq free-tier adapter — 20 October 2026
+
+Provider selection is explicit via `AI_PROVIDER=groq`. The AI package now uses Groq's OpenAI-compatible API with `whisper-large-v3-turbo` for segmented English transcription and `openai/gpt-oss-20b` for schema-validated clip ranges, commentary and external voice-generation prompts. `AI_PROVIDER=openai` remains an **explicit** alternative only; no automatic paid API fallback.
+
+For the free-tier pilot, configure `GROQ_API_KEY` only on the **separate Node/FFmpeg worker**, not in the browser. Keep `PROCESSING_ENABLED=false` in production until a worker is deployed with private R2 credentials, a database URL, budget variables and a verified small permissioned video. The web API requires monthly budget controls before enqueueing; configure `AI_JOB_BUDGET_MICROS` and `MONTHLY_AI_BUDGET_MICROS` for the paid-provider scenario and monitor real provider limits separately.
+
+Rate-limit errors are mapped to `AI_FREE_TIER_LIMIT` and fail without automatic retries/fallback. Grossly oversized transcript prompts fail fast; longer videos need a bounded chunked-selection flow before production activation. No free tier is a guarantee of unlimited calls or zero hosting charges. Validate Groq provider timestamp granularity and JSON schema compatibility on a live test before accepting public work. 
+
+
+
 ## Phase 2 — R2 upload readiness and resume hardening (19 October 2026)
 
 The web API now refuses to create new video projects or initiate uploads when the required private R2 variables are absent. The new-project screen explains unavailable uploads instead of creating an unusable record. Existing projects and account authentication remain accessible.

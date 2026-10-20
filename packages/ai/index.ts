@@ -1,30 +1,23 @@
-import OpenAI from "openai";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { z } from "zod";
 import { candidateSchema, segmentsSchema, type Segment } from "../contracts";
-import { required } from "../../src/lib/config";
-function client() {
-  return new OpenAI({
-    apiKey: required("OPENAI_API_KEY"),
-    maxRetries: 0,
-    timeout: 180000,
-  });
-}
+import { aiProviderClient, aiProviderSettings, classifyAiError } from "./provider";
 export async function transcribe(path: string, signal?: AbortSignal) {
   // At 48kbps, the maximum 30-minute source is below the 25 MB request limit.
   if ((await stat(path)).size > 24_000_000)
     throw Error("TRANSCRIPTION_FILE_TOO_LARGE");
-  const r = await client().audio.transcriptions.create(
+  const provider = aiProviderSettings();
+  const r = await aiProviderClient(provider).audio.transcriptions.create(
     {
       file: createReadStream(path),
-      model: "whisper-1",
+      model: provider.transcriptionModel,
       response_format: "verbose_json",
       timestamp_granularities: ["segment"],
       language: "en",
     },
     { signal },
-  );
+  ).catch((error: unknown) => { throw classifyAiError(error); });
   const segments = segmentsSchema.parse(
     (r.segments ?? [])
       .map((s, i) => ({
@@ -74,10 +67,15 @@ export async function select(
   count: number,
   signal?: AbortSignal,
 ) {
-  const r = await client().chat.completions.create(
+  const provider = aiProviderSettings();
+  // Cap free-tier inputs. A long transcript needs staged chunking, not a
+  // request that floods Groq's free-tier tokens-per-minute allowance.
+  if (provider.name === "groq" && JSON.stringify(segments).length > 12000)
+    throw Error("AI_FREE_TIER_INPUT_TOO_LARGE");
+  const r = await aiProviderClient(provider).chat.completions.create(
     {
-      model: required("TEXT_MODEL"),
-      max_completion_tokens: 6000,
+      model: provider.textModel,
+      max_completion_tokens: provider.maxCompletionTokens,
       response_format: {
         type: "json_schema",
         json_schema: { name: "clip_selection", strict: true, schema },
@@ -91,7 +89,7 @@ export async function select(
       ],
     },
     { signal },
-  );
+  ).catch((error: unknown) => { throw classifyAiError(error); });
   const text = r.choices[0]?.message.content;
   if (!text) throw Error("AI_EMPTY_RESPONSE");
   return {

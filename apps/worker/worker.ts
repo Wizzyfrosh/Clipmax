@@ -29,7 +29,7 @@ process.on("SIGINT", () => {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function code(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  return /^(UNSUPPORTED_|INVALID_|INSUFFICIENT_|VIDEO_TOO_LARGE|AI_EMPTY|OUTPUT_)/.test(
+  return /^(UNSUPPORTED_|INVALID_|INSUFFICIENT_|VIDEO_TOO_LARGE|AI_|CONFIG_|TRANSCRIPTION_FILE_TOO_LARGE|OUTPUT_)/.test(
     message,
   )
     ? message.split(":")[0]
